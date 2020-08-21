@@ -74,8 +74,10 @@ class MerunasDriver {
             // 5 Save image
             List<WebElement> imgs = driver.findElements(By.cssSelector("img"));
             String mainImg = imgs.get(4).getAttribute("src");
-            saveImage(mainImg);
-            Thread.sleep(100000);
+            String imageExtension = js.executeScript("return arguments[0].replace(/https:\\/\\/miro\\.medium\\.com\\/max\\/.*(\\..*)/, '$1')", mainImg).toString();
+            String imageName = "image" + count + imageExtension;
+            saveImage(mainImg, imageName);
+            Thread.sleep(1000);
 
             String convertToJsonScript = String.join("\n",
                 "return JSON.stringify({",
@@ -85,7 +87,7 @@ class MerunasDriver {
                     "subtitle: arguments[3],",
                     "content: arguments[4],",
                 "})");
-            String json = js.executeScript(convertToJsonScript, count, title, mainImg, subtitle, filteredContentHTML).toString();
+            String json = js.executeScript(convertToJsonScript, count, title, imageName, subtitle, filteredContentHTML).toString();
             System.out.println(json);
             count++;
         } catch (Exception e) {
@@ -96,7 +98,7 @@ class MerunasDriver {
         }
     }
 
-    void saveImage(String url) throws InterruptedException, IOException {
+    void saveImage(String url, String imageName) throws InterruptedException, IOException {
         try {
             driver.get(url);
             Robot robot = new Robot();
@@ -104,8 +106,26 @@ class MerunasDriver {
             robot.keyPress(KeyEvent.VK_S);
             robot.keyRelease(KeyEvent.VK_S);
             robot.keyRelease(KeyEvent.VK_CONTROL);
+            Thread.sleep(1000);
+            sendKeys(robot, imageName);
+            robot.keyPress(KeyEvent.VK_ENTER);
+            robot.keyRelease(KeyEvent.VK_ENTER);
         } catch (AWTException e) {
             e.printStackTrace();
+        }
+    }
+
+    void sendKeys(Robot robot, String keys) {
+        for (char c : keys.toCharArray()) {
+            int keyCode = KeyEvent.getExtendedKeyCodeForChar(c);
+            if (KeyEvent.CHAR_UNDEFINED == keyCode) {
+                throw new RuntimeException(
+                        "Key code not found for character '" + c + "'");
+            }
+            robot.keyPress(keyCode);
+            robot.delay(100);
+            robot.keyRelease(keyCode);
+            robot.delay(100);
         }
     }
 
